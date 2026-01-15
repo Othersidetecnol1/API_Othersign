@@ -1,8 +1,10 @@
 const express = require('express');
-const MetaAdsController = require('../controllers/MetaAdsController');
-
 const router = express.Router();
 
-router.get('/insights', MetaAdsController.getInsights);
+const firebaseAuth = require('../middlewares/firebaseAuth');
+const MetaAdsController = require('../controllers/MetaAdsController');
+
+// Rota correta
+router.get('/meta/summary', firebaseAuth, MetaAdsController.getSummary);
 
 module.exports = router;
