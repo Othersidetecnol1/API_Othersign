@@ -86,8 +86,17 @@
       margin-top: 10px;
       color: #38bdf8;
     }
+
+    .logout {
+      margin-top: 15px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #93c5fd;
+      text-decoration: underline;
+    }
   </style>
 </head>
+
 <body>
 
 <header>
@@ -97,6 +106,7 @@
     Conta Meta: <span id="accountId">--</span><br>
     Moeda: <span id="currency">--</span>
     <div class="status" id="statusMsg">Conectando à Meta...</div>
+    <div class="logout" onclick="logout()">Sair</div>
   </div>
 </header>
 
@@ -130,20 +140,40 @@
 </footer>
 
 <script>
-  const AD_ACCOUNT_ID = '1070476821772591';
+  const AD_ACCOUNT_ID = '1312996493962714';
+  const API_BASE = 'http://localhost:3333/meta';
   let chart;
+
+  function getAuthHeaders() {
+    const token = localStorage.getItem('firebaseToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  function logout() {
+    localStorage.removeItem('firebaseToken');
+    window.location.href = '/login.html';
+  }
+
+  function formatCurrency(value) {
+    return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
+  }
 
   async function loadAccountInfo() {
     try {
       const response = await fetch(
-        `http://localhost:3333/meta/account-info?ad_account_id=${AD_ACCOUNT_ID}`
+        `${API_BASE}/account-info?ad_account_id=${AD_ACCOUNT_ID}`,
+        { headers: getAuthHeaders() }
       );
+
+      if (!response.ok) throw new Error('Erro conta');
+
       const data = await response.json();
 
-      document.getElementById('clientName').innerText = data.name;
+      document.getElementById('clientName').innerText = data.name || 'Cliente';
       document.getElementById('accountId').innerText = 'act_' + data.account_id;
-      document.getElementById('currency').innerText = data.currency;
-    } catch (error) {
+      document.getElementById('currency').innerText = data.currency || 'BRL';
+
+    } catch {
       document.getElementById('clientName').innerText = 'Não identificado';
     }
   }
@@ -151,33 +181,33 @@
   async function loadData() {
     try {
       const response = await fetch(
-        `http://localhost:3333/meta/summary?ad_account_id=${AD_ACCOUNT_ID}`
+        `${API_BASE}/summary?ad_account_id=${AD_ACCOUNT_ID}`,
+        { headers: getAuthHeaders() }
       );
+
+      if (!response.ok) throw new Error('Erro dados');
+
       const data = await response.json();
 
-      if (data.status === 'waiting') {
-        document.getElementById('statusMsg').innerText =
-          '⏳ A Meta ainda está consolidando os dados...';
-      } else {
-        document.getElementById('statusMsg').innerText =
-          '✅ Dados atualizados automaticamente';
-      }
+      document.getElementById('statusMsg').innerText =
+        data.status === 'waiting'
+          ? '⏳ A Meta ainda está consolidando os dados...'
+          : '✅ Dados atualizados automaticamente';
 
-      document.getElementById('impressions').innerText = data.impressions;
-      document.getElementById('clicks').innerText = data.clicks;
-      document.getElementById('spend').innerText =
-        'R$ ' + data.spend.toFixed(2).replace('.', ',');
+      document.getElementById('impressions').innerText = data.impressions || 0;
+      document.getElementById('clicks').innerText = data.clicks || 0;
+      document.getElementById('spend').innerText = formatCurrency(data.spend);
 
-      updateChart(data.impressions, data.clicks);
+      updateChart(data.impressions || 0, data.clicks || 0);
 
-    } catch (error) {
+    } catch {
       document.getElementById('statusMsg').innerText =
         '❌ Erro ao buscar dados da Meta';
     }
   }
 
   function updateChart(impressions, clicks) {
-    const ctx = document.getElementById('chart').getContext('2d');
+    const ctx = document.getElementById('chart');
 
     if (chart) chart.destroy();
 
@@ -186,18 +216,14 @@
       data: {
         labels: ['Impressões', 'Cliques'],
         datasets: [{
-          data: [impressions, clicks]
+          data: [impressions, clicks],
+          backgroundColor: ['#38bdf8', '#22c55e'],
+          borderRadius: 6
         }]
       },
       options: {
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
       }
     });
   }
@@ -206,8 +232,8 @@
   loadData();
   setInterval(loadData, 30000);
 </script>
-<script type="module" src="js/auth-guard.js"></script>
+
+<script src="js/auth-guard.js"></script>
 
 </body>
 </html>
-    

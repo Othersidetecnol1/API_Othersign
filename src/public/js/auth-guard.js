@@ -1,9 +1,10 @@
-import { auth } from './firebase-config.js';
-import { onAuthStateChanged } from
-  'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+console.log('🛡️ auth-guard carregado');
 
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-  }
-});
+const token = localStorage.getItem('firebaseToken');
+
+if (!token) {
+  console.warn('❌ Token não encontrado, redirecionando para login');
+  window.location.href = '/login.html';
+} else {
+  console.log('✅ Token encontrado, acesso permitido');
+}

@@ -1,6 +1,7 @@
 import { auth } from './firebase-config.js';
-import { signInWithEmailAndPassword } from
-  'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+  signInWithEmailAndPassword
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 console.log('🔥 login.js carregado');
 
@@ -13,11 +14,24 @@ form.addEventListener('submit', async (e) => {
   const password = document.getElementById('password').value;
 
   try {
-    const user = await signInWithEmailAndPassword(auth, email, password);
-    console.log('✅ Login OK:', user.user.email);
-    window.location.href = "index.html";
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+
+    const user = credential.user;
+
+    // 🔐 GERA TOKEN
+    const token = await user.getIdToken();
+
+    // 💾 SALVA TOKEN
+    localStorage.setItem('firebaseToken', token);
+
+    console.log('✅ Login OK:', user.email);
+    console.log('🔐 Token salvo no localStorage');
+
+    // ➡️ REDIRECIONA
+    window.location.href = 'index.html';
+
   } catch (error) {
     console.error('❌ Erro no login:', error.message);
-    alert(error.message);
+    alert('Erro ao fazer login');
   }
 });

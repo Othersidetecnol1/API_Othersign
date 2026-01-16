@@ -1,16 +1,21 @@
 const admin = require('../config/firebase');
 
 module.exports = async (req, res, next) => {
-  const token = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
+  if (!authHeader) {
     return res.status(401).json({ error: 'Token não enviado' });
   }
 
+  // 🔥 remove o "Bearer "
+  const token = authHeader.replace('Bearer ', '');
+
   try {
-    await admin.auth().verifyIdToken(token);
-    next(); // deixa seguir para a rota
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.user = decoded; // opcional, mas útil
+    next(); // ✅ agora a rota continua
   } catch (error) {
+    console.error('Firebase Auth erro:', error.message);
     return res.status(401).json({ error: 'Token inválido' });
   }
 };
