@@ -1,38 +1,44 @@
 const fs = require('fs');
 const path = require('path');
 
-const cachePath = path.join(__dirname, '../cache/meta-insights.json');
+const CACHE_TIME = 5 * 60 * 1000; // 5 minutos
 
-exports.readCache = () => {
-  try {
-    const data = fs.readFileSync(cachePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {};
+class CacheService {
+
+  static getCacheKey(adAccountId, level, period) {
+    return `meta-${adAccountId}-${level}-${period}.json`;
   }
-};
 
-exports.writeCache = (newData) => {
-  const payload = {
-    updatedAt: new Date().toISOString(),
-    data: newData
-  };
+  static readCache(key) {
+    try {
+      const filePath = path.join(__dirname, '../cache', key);
 
-  fs.writeFileSync(
-    cachePath,
-    JSON.stringify(payload, null, 2)
-  );
-};
+      if (!fs.existsSync(filePath)) return null;
 
-exports.isCacheValid = (cacheData, minutes = 15) => {
-  if (!cacheData.updatedAt) return false;
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
 
-  const lastUpdate = new Date(cacheData.updatedAt);
-  const now = new Date();
+  static writeCache(key, data) {
+    const payload = {
+      timestamp: Date.now(),
+      data
+    };
 
-  const diffMs = now - lastUpdate;
-  const diffMinutes = diffMs / 1000 / 60;
+    const filePath = path.join(__dirname, '../cache', key);
 
-  return diffMinutes < minutes;
-};
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
+  }
 
+  static isCacheValid(cache) {
+    if (!cache) return false;
+
+    const now = Date.now();
+    return now - cache.timestamp < CACHE_TIME;
+  }
+}
+
+module.exports = CacheService;

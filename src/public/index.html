@@ -34,6 +34,19 @@
       line-height: 1.6;
     }
 
+    .controls {
+      margin-top: 15px;
+    }
+
+    select {
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
     .container {
       padding: 30px;
       max-width: 1200px;
@@ -101,10 +114,23 @@
 
 <header>
   <h1>📊 Dashboard de Campanhas</h1>
+
   <div class="subtitle">
     Cliente: <strong id="clientName">Carregando...</strong><br>
     Conta Meta: <span id="accountId">--</span><br>
     Moeda: <span id="currency">--</span>
+
+    <div class="controls">
+      Período:
+      <select id="periodSelect">
+        <option value="today">Hoje</option>
+        <option value="last_7d" selected>Últimos 7 dias</option>
+        <option value="last_14d">Últimos 14 dias</option>
+        <option value="last_30d">Últimos 30 dias</option>
+        <option value="maximum">Desde o início</option>
+      </select>
+    </div>
+
     <div class="status" id="statusMsg">Conectando à Meta...</div>
     <div class="logout" onclick="logout()">Sair</div>
   </div>
@@ -146,7 +172,11 @@
 
   function getAuthHeaders() {
     const token = localStorage.getItem('firebaseToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (!token) {
+      window.location.href = '/login.html';
+      return {};
+    }
+    return { Authorization: `Bearer ${token}` };
   }
 
   function logout() {
@@ -165,10 +195,9 @@
         { headers: getAuthHeaders() }
       );
 
-      if (!response.ok) throw new Error('Erro conta');
+      if (!response.ok) throw new Error();
 
       const data = await response.json();
-
       document.getElementById('clientName').innerText = data.name || 'Cliente';
       document.getElementById('accountId').innerText = 'act_' + data.account_id;
       document.getElementById('currency').innerText = data.currency || 'BRL';
@@ -179,30 +208,38 @@
   }
 
   async function loadData() {
+    const period = document.getElementById('periodSelect').value;
+
     try {
       const response = await fetch(
-        `${API_BASE}/summary?ad_account_id=${AD_ACCOUNT_ID}`,
+        `${API_BASE}/summary?ad_account_id=${AD_ACCOUNT_ID}&period=${period}`,
         { headers: getAuthHeaders() }
       );
 
-      if (!response.ok) throw new Error('Erro dados');
+      if (!response.ok) throw new Error();
 
       const data = await response.json();
 
-      document.getElementById('statusMsg').innerText =
-        data.status === 'waiting'
-          ? '⏳ A Meta ainda está consolidando os dados...'
-          : '✅ Dados atualizados automaticamente';
+      if (data.status === 'waiting') {
+        document.getElementById('statusMsg').innerText =
+          '⏳ Aguardando dados da Meta...';
+        return;
+      }
 
-      document.getElementById('impressions').innerText = data.impressions || 0;
-      document.getElementById('clicks').innerText = data.clicks || 0;
+      document.getElementById('statusMsg').innerText =
+        data.status === 'cache'
+          ? '⚡ Dados retornados do cache'
+          : '✅ Dados atualizados da Meta';
+
+      document.getElementById('impressions').innerText = data.impressions;
+      document.getElementById('clicks').innerText = data.clicks;
       document.getElementById('spend').innerText = formatCurrency(data.spend);
 
-      updateChart(data.impressions || 0, data.clicks || 0);
+      updateChart(data.impressions, data.clicks);
 
     } catch {
       document.getElementById('statusMsg').innerText =
-        '❌ Erro ao buscar dados da Meta';
+        '❌ Erro ao buscar dados';
     }
   }
 
@@ -228,9 +265,11 @@
     });
   }
 
+  document.getElementById('periodSelect')
+    .addEventListener('change', loadData);
+
   loadAccountInfo();
   loadData();
-  setInterval(loadData, 30000);
 </script>
 
 <script src="js/auth-guard.js"></script>
