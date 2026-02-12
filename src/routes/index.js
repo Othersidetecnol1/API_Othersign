@@ -1,5 +1,5 @@
-const healthRoutes = require('./health.routes');
+const v1Routes = require('./v1');
 
 module.exports = (app) => {
-  app.use(healthRoutes);
+  v1Routes(app);
 };

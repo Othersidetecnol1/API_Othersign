@@ -1,28 +1,32 @@
-const axios = require('axios');
-const META_BASE_URL = 'https://graph.facebook.com/v19.0';
-
-exports.getInsights = async (adAccountId, datePreset) => {
+exports.getCampaignInsights = async (campaignId, datePreset = 'last_30d') => {
   try {
-    console.log('📊 Buscando insights da Meta');
-    console.log('➡️ Conta:', adAccountId);
-    console.log('➡️ Período:', datePreset);
+    console.log('📊 Buscando insights da campanha');
+    console.log('➡️ Campanha:', campaignId);
 
     const response = await axios.get(
-      `${META_BASE_URL}/act_${adAccountId}/insights`,
+      `${META_BASE_URL}/${campaignId}/insights`,
       {
         params: {
           access_token: process.env.META_ACCESS_TOKEN,
-          fields: 'impressions,clicks,spend',
+          fields: `
+            impressions,
+            reach,
+            clicks,
+            spend,
+            cpc,
+            ctr,
+            cpm
+          `,
           date_preset: datePreset
         }
       }
     );
 
-    console.log('✅ Insights recebidos da Meta');
+    console.log('✅ Insights recebidos');
     return response.data;
 
   } catch (error) {
-    console.error('❌ Erro ao buscar insights');
+    console.error('❌ Erro ao buscar insights da campanha');
 
     if (error.response) {
       console.error(JSON.stringify(error.response.data, null, 2));
