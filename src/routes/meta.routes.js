@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const MetaAdsController = require('../controllers/MetaAdsController');
 
-// 🔎 Teste
-router.get('/test', (req, res) => {
-  res.json({ ok: true });
-});
+const metaController = require('../controllers/metaController');
 
-// 📊 Summary
-router.get('/summary', MetaAdsController.summary);
+router.get(
+  '/campaign/:campaignId/insights',
+  metaController.getCampaignInsights
+);
 
 module.exports = router;

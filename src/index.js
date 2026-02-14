@@ -8,7 +8,7 @@ async function start() {
   } catch (error) {
     console.error("❌ Erro ao iniciar aplicação");
 
-    if (error.response) {
+    if (error.response) { 
       console.error(error.response.data);
     } else {
       console.error(error.message);

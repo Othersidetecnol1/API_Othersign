@@ -1,22 +1,59 @@
-
 require('dotenv').config();
 
-console.log('🔥 server.js foi executado');
-console.log(
-  'META_ACCESS_TOKEN:',
-  process.env.META_ACCESS_TOKEN ? 'CARREGADO ✅' : 'NÃO CARREGADO ❌'
-);
+const express = require('express');
+const cors = require('cors');
 
-const app = require('./src/app');
+// 🔥 Caminho correto usando sua estrutura com src
+const metaRoutes = require('./src/routes/meta.routes');
 
+const app = express();
+
+// =============================
+// 🔧 MIDDLEWARES
+// =============================
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// =============================
+// 📌 ROTA BASE
+// =============================
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: '🚀 API Meta Ads rodando com sucesso!'
+  });
+});
+
+// =============================
+// 📌 ROTAS DA META
+// =============================
+app.use('/meta', metaRoutes);
+
+// =============================
+// ❌ ROTA NÃO ENCONTRADA
+// =============================
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Rota não encontrada'
+  });
+});
+
+// =============================
+// 🚨 TRATAMENTO GLOBAL DE ERRO
+// =============================
+app.use((err, req, res, next) => {
+  console.error('🔥 Erro inesperado:', err.stack);
+
+  res.status(500).json({
+    error: 'Erro interno do servidor'
+  });
+});
+
+// =============================
+// 🚀 INICIAR SERVIDOR
+// =============================
 const PORT = process.env.PORT || 3333;
-const healthRoutes = require('./src/routes/health.routes');
-//app.use(healthRoutes);
-
-const registerRoutes = require('./src/routes');
-
-registerRoutes(app);
 
 app.listen(PORT, () => {
-  console.log(`🚀 API rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
