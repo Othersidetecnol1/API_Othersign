@@ -1,22 +1,37 @@
 const MetaAdsService = require('../services/MetaAdsService');
 const CacheService = require('../services/CacheService');
+const UserMetaService = require('../services/UserMetaService');
 
 class MetaAdsController {
   static async summary(req, res) {
     try {
-      const { ad_account_id, period } = req.query;
-
-      if (!ad_account_id) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'ad_account_id é obrigatório'
-        });
-      }
+      const uid = req.user.uid;
+      const { period } = req.query;
 
       const datePreset = period || 'last_7d';
 
-      // 🔍 Cache por período
-      const cache = CacheService.readCache(datePreset);
+      // 🔐 Buscar dados Meta do usuário no Firestore
+      const metaData = await UserMetaService.getMetaData(uid);
+
+      if (!metaData) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Conta Meta não configurada para este usuário'
+        });
+      }
+
+      const { ad_account_id, access_token } = metaData;
+
+      if (!ad_account_id || !access_token) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Dados da Meta incompletos'
+        });
+      }
+
+      // 🔍 Cache por usuário + período
+      const cacheKey = `${uid}_${datePreset}`;
+      const cache = CacheService.readCache(cacheKey);
 
       if (CacheService.isCacheValid(cache)) {
         return res.json({
@@ -26,7 +41,12 @@ class MetaAdsController {
         });
       }
 
-      const response = await MetaAdsService.getInsights(ad_account_id, datePreset);
+      // 📊 Buscar dados da Meta
+      const response = await MetaAdsService.getInsights(
+        ad_account_id,
+        datePreset,
+        access_token
+      );
 
       if (!response.data || response.data.length === 0) {
         return res.json({
@@ -48,7 +68,7 @@ class MetaAdsController {
         { impressions: 0, clicks: 0, spend: 0 }
       );
 
-      CacheService.writeCache(datePreset, summary);
+      CacheService.writeCache(cacheKey, summary);
 
       return res.json({
         status: 'ok',
@@ -58,6 +78,8 @@ class MetaAdsController {
       });
 
     } catch (error) {
+      console.error(error.response?.data || error.message);
+
       return res.status(500).json({
         status: 'error',
         message: 'Erro ao gerar resumo',

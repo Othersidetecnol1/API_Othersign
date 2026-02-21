@@ -1,33 +1,49 @@
 const axios = require('axios');
-const META_BASE_URL = 'https://graph.facebook.com/v19.0';
 
-exports.getInsights = async (adAccountId, datePreset) => {
-  try {
-    console.log('📊 Buscando insights da Meta');
-    console.log('➡️ Conta:', adAccountId);
-    console.log('➡️ Período:', datePreset);
-
-    const response = await axios.get(
-      `${META_BASE_URL}/act_${adAccountId}/insights`,
-      {
-        params: {
-          access_token: process.env.META_ACCESS_TOKEN,
-          fields: 'impressions,clicks,spend',
-          date_preset: datePreset
-        }
-      }
-    );
-
-    console.log('✅ Insights recebidos da Meta');
-    return response.data;
-
-  } catch (error) {
-    console.error('❌ Erro ao buscar insights');
-
-    if (error.response) {
-      console.error(JSON.stringify(error.response.data, null, 2));
+class MetaAdsService {
+  /**
+   * Busca insights da Meta Ads para uma conta específica
+   * @param {string} adAccountId - ID numérico da conta (SEM act_)
+   * @param {string} period - date_preset (ex: last_7d, last_30d, maximum)
+   * @param {string} accessToken - Token de acesso da Meta (por usuário)
+   */
+  static async getInsights(adAccountId, period, accessToken) {
+    if (!adAccountId) {
+      throw new Error('adAccountId não informado');
     }
 
-    throw error;
+    if (!accessToken) {
+      throw new Error('accessToken da Meta não informado');
+    }
+
+    const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/insights`;
+
+    console.log('📊 Buscando insights da Meta');
+    console.log('➡️ Conta:', adAccountId);
+    console.log('➡️ Período:', period);
+
+    try {
+      const response = await axios.get(url, {
+        params: {
+          access_token: accessToken,
+          date_preset: period,
+          fields: 'impressions,clicks,spend'
+        }
+      });
+
+      return response.data;
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar insights');
+
+      // Log detalhado da Meta (se existir)
+      if (error.response?.data) {
+        console.error(JSON.stringify(error.response.data, null, 2));
+      }
+
+      throw error;
+    }
   }
-};
+}
+
+module.exports = MetaAdsService;

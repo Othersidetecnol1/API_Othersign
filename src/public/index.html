@@ -116,9 +116,9 @@
   <h1>📊 Dashboard de Campanhas</h1>
 
   <div class="subtitle">
-    Cliente: <strong id="clientName">Carregando...</strong><br>
-    Conta Meta: <span id="accountId">--</span><br>
-    Moeda: <span id="currency">--</span>
+    Cliente: <strong id="clientName">Conta conectada</strong><br>
+    Conta Meta: <span id="accountId">—</span><br>
+    Moeda: <span id="currency">—</span>
 
     <div class="controls">
       Período:
@@ -165,114 +165,12 @@
   Relatório automatizado • Agência Otherside
 </footer>
 
-<script>
-  const AD_ACCOUNT_ID = '1312996493962714';
-  const API_BASE = 'http://localhost:3333/meta';
-  let chart;
+<!-- 🔐 Firebase / Auth -->
+<script src="/js/firebase-config.js"></script>
+<script src="/js/auth-guard.js"></script>
 
-  function getAuthHeaders() {
-    const token = localStorage.getItem('firebaseToken');
-    if (!token) {
-      window.location.href = '/login.html';
-      return {};
-    }
-    return { Authorization: `Bearer ${token}` };
-  }
-
-  function logout() {
-    localStorage.removeItem('firebaseToken');
-    window.location.href = '/login.html';
-  }
-
-  function formatCurrency(value) {
-    return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
-  }
-
-  async function loadAccountInfo() {
-    try {
-      const response = await fetch(
-        `${API_BASE}/account-info?ad_account_id=${AD_ACCOUNT_ID}`,
-        { headers: getAuthHeaders() }
-      );
-
-      if (!response.ok) throw new Error();
-
-      const data = await response.json();
-      document.getElementById('clientName').innerText = data.name || 'Cliente';
-      document.getElementById('accountId').innerText = 'act_' + data.account_id;
-      document.getElementById('currency').innerText = data.currency || 'BRL';
-
-    } catch {
-      document.getElementById('clientName').innerText = 'Não identificado';
-    }
-  }
-
-  async function loadData() {
-    const period = document.getElementById('periodSelect').value;
-
-    try {
-      const response = await fetch(
-        `${API_BASE}/summary?ad_account_id=${AD_ACCOUNT_ID}&period=${period}`,
-        { headers: getAuthHeaders() }
-      );
-
-      if (!response.ok) throw new Error();
-
-      const data = await response.json();
-
-      if (data.status === 'waiting') {
-        document.getElementById('statusMsg').innerText =
-          '⏳ Aguardando dados da Meta...';
-        return;
-      }
-
-      document.getElementById('statusMsg').innerText =
-        data.status === 'cache'
-          ? '⚡ Dados retornados do cache'
-          : '✅ Dados atualizados da Meta';
-
-      document.getElementById('impressions').innerText = data.impressions;
-      document.getElementById('clicks').innerText = data.clicks;
-      document.getElementById('spend').innerText = formatCurrency(data.spend);
-
-      updateChart(data.impressions, data.clicks);
-
-    } catch {
-      document.getElementById('statusMsg').innerText =
-        '❌ Erro ao buscar dados';
-    }
-  }
-
-  function updateChart(impressions, clicks) {
-    const ctx = document.getElementById('chart');
-
-    if (chart) chart.destroy();
-
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Impressões', 'Cliques'],
-        datasets: [{
-          data: [impressions, clicks],
-          backgroundColor: ['#38bdf8', '#22c55e'],
-          borderRadius: 6
-        }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  document.getElementById('periodSelect')
-    .addEventListener('change', loadData);
-
-  loadAccountInfo();
-  loadData();
-</script>
-
-<script src="js/auth-guard.js"></script>
+<!-- 📊 Dashboard -->
+<script src="/js/dashboard.js"></script>
 
 </body>
 </html>
